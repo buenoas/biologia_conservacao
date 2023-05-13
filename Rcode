@@ -1,3 +1,27 @@
+###########################
+### IUCN COLOUR PALETTE ###
+###########################
+
+iucn_palette = data.frame(category = c("Extinct", "Extinct In The Wild", "Regionally Extinct", "Critically Endangered", "Endangered", "Vulnerable", "Lower Risk (conservation dependent)", "Lower Risk (near threatened)", "Near Threatened", "Lower Risk (least concern)", "Least Concern", "Data Deficient", "Not Applicable"),
+                          code = c("EX", "EW", "RE", "CR", "EN", "VU", "LR/cd", "LR/nt", "NT", "LR/lc", "LC", "DD", "NA"),
+                          colour = c("#000000", "#542344", "#9B4F96", "#D81E05", "#FC7F3F", "#F9E814", "#E4D354", "#CCE226", "#CCE226", "#5FC658", "#5FC658", "#D1D1C6", "#C1B5A5"))
+
+# EX - Extinct - #000000
+# EW - Extinct In The Wild - #542344
+# RE - Regionally Extinct (regional category) - #9B4F96
+# CR - Critically Endangered - "#D81E05"
+# EN - Endangered - "#FC7F3F"
+# VU - Vulnerable - "#F9E814"
+# LR/cd - Lower Risk: Conservation Dependent - #E4D354
+# NT or LR/nt - Near Threatened - #CCE226
+# LC or LR/lc - Least Concern - #5FC658
+# DD - Data Deficient - #D1D1C6
+# NA - Not Applicable (regional category) - #C1B5A5
+
+# Marine System - #053356
+
+###############################
+
 # Carrega o pacote
 library(ggplot2)
 
@@ -68,3 +92,66 @@ p
 # Salva o grafico
 ggsave(p, filename = "iucn.jpg", dpi = 600,
        w = 20, h = 22, units = "cm")
+
+
+##################
+### AREA CHART ###
+##################
+
+# Carrega os pacotes
+library(pdftools)
+library(stringr)
+
+# Importa os dados da IUCN
+tab2 = pdf_text("https://nc.iucnredlist.org/redlist/content/attachment_files/2022-2_RL_Stats_Table_2.pdf")
+
+tab2 = str_split(tab2, "\n")
+
+tab2 = lapply(tab2, str_squish)
+
+tab2 = lapply(tab2, function(x) gsub(",", "", x))
+
+year = lapply(tab2, function(x) word(x, 1))
+total = lapply(tab2, function(x) word(x, -1))
+
+x1 = data.frame(year = year[[1]][15:36],
+                total = total[[1]][15:36],
+                category = tab2[[1]][11])
+
+x2 = data.frame(year = year[[2]][7:28],
+                total = total[[2]][7:28],
+                category = tab2[[1]][39])
+
+x3 = data.frame(year = c(year[[2]][35:39], year[[3]][4:20]),
+                total = c(total[[2]][35:39], total[[3]][4:20]),
+                category = tab2[[2]][31])
+
+x = rbind(x1, x2, x3) 
+x$year[x$year == "1996/1998"] = 1997
+x$year = as.integer(x$year)
+x$total = as.integer(x$total)
+
+ggplot(data = x,
+       aes(x = year, y = total, fill = category)) +
+  
+  labs(y = "Species", x = "Year", fill = NULL) +
+  
+  scale_x_continuous(expand = c(0.03, 0.03),
+                     limits = c(2000, NA),
+                     breaks = seq(2000, 2022, 1)) +
+  scale_fill_manual(values = c("red", "orange", "yellow"),
+                    labels = c("CR", "EN", "VU")) +
+  
+  geom_area() +
+  
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top",
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.y = element_line(linewidth = 1/3),
+        panel.grid.minor.y = element_blank(),
+        axis.line = element_line(colour = "black", linewidth = 1/3),
+        axis.ticks = element_line(colour = "black", linewidth = 1/3),
+        axis.text.x = element_text(colour = "black", angle = 45, vjust = 0.5),
+        axis.text.y = element_text(colour = "black"),
+        axis.title = element_text(colour = "black", face = "bold"))
